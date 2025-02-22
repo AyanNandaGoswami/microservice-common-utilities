@@ -5,11 +5,13 @@ import (
 	"log"
 	"time"
 
+	auth "github.com/AyanNandaGoswami/file-sharing-app-common-utilities/v1/models"
 	"github.com/golang-jwt/jwt/v5"
 )
 
 type Claims struct {
-	UserId string `json:"user_id"`
+	UserId          string `json:"user_id"`
+	PrimitiveUserId string `json:"primitive_user_id"`
 	jwt.RegisteredClaims
 }
 
@@ -19,7 +21,7 @@ const (
 )
 
 // Generate a new JWT token for given user ID
-func GenerateNewJWToken(userId string) (string, error) {
+func GenerateNewJWToken(userId string, primitiveId string) (string, error) {
 	// Set the JWT secret key
 	jwtkeyBytes := []byte(jwtKey)
 
@@ -28,7 +30,8 @@ func GenerateNewJWToken(userId string) (string, error) {
 
 	// Define the token claims
 	claims := &Claims{
-		UserId: userId,
+		UserId:          userId,
+		PrimitiveUserId: primitiveId,
 		// Registered token claims
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
@@ -59,24 +62,25 @@ func checkJWTKey(token *jwt.Token) (interface{}, error) {
 	return []byte(jwtKey), nil
 }
 
-func RetrieveUserIdFromJWTToken(tokenString string) (string, error) {
+func RetrieveDetilsFromJWT(tokenString string) (*auth.DecodedJwtClaims, error) {
 	claims := &Claims{}
 
 	// Parse the token string into the claim
 	token, err := jwt.ParseWithClaims(tokenString, claims, checkJWTKey)
+	var decodedClaim auth.DecodedJwtClaims
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// Verify token validity
 	if !token.Valid {
-		return "", errors.New("token is not valid")
+		return nil, errors.New("token is not valid")
 	}
 
-	// Extract user ID from claims
-	userID := claims.UserId
+	decodedClaim.UserId = claims.UserId
+	decodedClaim.PrimitiveUserId = claims.PrimitiveUserId
 
 	// Return user ID
-	return userID, nil
+	return &decodedClaim, nil
 }

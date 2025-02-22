@@ -9,6 +9,14 @@ import (
 	auth "github.com/AyanNandaGoswami/file-sharing-app-common-utilities/v1/utilities"
 )
 
+type contextKey string
+
+const (
+	UserIdKey          contextKey = "userId"
+	PrimitiveUserIdKey contextKey = "primitiveUserId"
+	TokenKey           contextKey = "token"
+)
+
 func returnErrorMessage(w http.ResponseWriter, errMessage string) {
 	// Convert the error message to JSON format
 	errorMessage := map[string]string{"message": errMessage}
@@ -45,7 +53,7 @@ func AuthValidateMiddleware(next http.Handler) http.Handler {
 		// }
 
 		// Retrieve user ID from JWT token
-		userId, err := auth.RetrieveUserIdFromJWTToken(token)
+		info, err := auth.RetrieveDetilsFromJWT(token)
 		if err != nil {
 			// Split the error message by ":"
 			errorMessageParts := strings.Split(err.Error(), ":")
@@ -56,8 +64,18 @@ func AuthValidateMiddleware(next http.Handler) http.Handler {
 		}
 
 		// Add user id to request context if needed
-		r = r.WithContext(context.WithValue(r.Context(), "userId", userId))
-		r = r.WithContext(context.WithValue(r.Context(), "token", token))
+		// r = r.WithContext(context.WithValue(r.Context(), "userId", info.UserId))
+		// r = r.WithContext(context.WithValue(r.Context(), "primitiveUserId", info.PrimitiveUserId))
+		// r = r.WithContext(context.WithValue(r.Context(), "token", token))
+
+		// Add user id to request context if needed
+		ctx := r.Context()
+		ctx = context.WithValue(ctx, UserIdKey, info.UserId)
+		ctx = context.WithValue(ctx, PrimitiveUserIdKey, info.PrimitiveUserId)
+		ctx = context.WithValue(ctx, TokenKey, token)
+
+		// Pass the new context along with the request to the next handler
+		r = r.WithContext(ctx)
 
 		// Call the next handler
 		next.ServeHTTP(w, r)
