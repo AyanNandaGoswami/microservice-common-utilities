@@ -1,6 +1,6 @@
 package models
 
-type FielValidationErrorResponse struct {
+type FieldValidationErrorResponse struct {
 	FieldName string `json:"field_name"`
 	Message   string `json:"message"`
 }

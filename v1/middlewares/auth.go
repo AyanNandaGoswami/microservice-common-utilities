@@ -2,7 +2,6 @@ package middlewares
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"strings"
 
@@ -17,13 +16,9 @@ const (
 	TokenKey           contextKey = "token"
 )
 
-func returnErrorMessage(w http.ResponseWriter, errMessage string) {
-	// Convert the error message to JSON format
-	errorMessage := map[string]string{"message": errMessage}
-	jsonErrorMessage, _ := json.Marshal(errorMessage)
-
-	// Return the error message as JSON with status code 401 (Unauthorized)
-	http.Error(w, string(jsonErrorMessage), http.StatusUnauthorized)
+// Define the interface for getting user permissions.
+type PermissionGetter interface {
+	GetUserPermissionEndpoints(primitiveUserId string) (map[string]string, error)
 }
 
 // AuthValidateMiddleware is a middleware to validate Headers and JWT token
@@ -32,14 +27,14 @@ func AuthValidateMiddleware(next http.Handler) http.Handler {
 		// Check if the Authorization header is present
 		authorization := r.Header.Get("Authorization")
 		if authorization == "" {
-			returnErrorMessage(w, "Authorization header is missing")
+			ReturnErrorMessage(w, "Authorization header is missing", 401)
 			return
 		}
 
 		// Split the Authorization header into "Bearer" and the token
 		splitedInfo := strings.Split(authorization, " ")
 		if len(splitedInfo) != 2 || splitedInfo[0] != "Bearer" {
-			returnErrorMessage(w, "Invalid Authorization header format")
+			ReturnErrorMessage(w, "Invalid Authorization header format", 401)
 			return
 		}
 
@@ -59,14 +54,9 @@ func AuthValidateMiddleware(next http.Handler) http.Handler {
 			errorMessageParts := strings.Split(err.Error(), ":")
 
 			// Send the error message without ":"
-			returnErrorMessage(w, errorMessageParts[len(errorMessageParts)-1])
+			ReturnErrorMessage(w, errorMessageParts[len(errorMessageParts)-1], 401)
 			return
 		}
-
-		// Add user id to request context if needed
-		// r = r.WithContext(context.WithValue(r.Context(), "userId", info.UserId))
-		// r = r.WithContext(context.WithValue(r.Context(), "primitiveUserId", info.PrimitiveUserId))
-		// r = r.WithContext(context.WithValue(r.Context(), "token", token))
 
 		// Add user id to request context if needed
 		ctx := r.Context()
@@ -80,4 +70,37 @@ func AuthValidateMiddleware(next http.Handler) http.Handler {
 		// Call the next handler
 		next.ServeHTTP(w, r)
 	})
+}
+
+// PermissionValidationMiddleware expects a concrete implementation of PermissionGetter
+func PermissionValidationMiddleware(permissionGetter PermissionGetter) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Get the primitiveUserId from the request context
+			primitiveUserId := r.Context().Value(PrimitiveUserIdKey).(string)
+
+			// Call the GetUserPermissionEndpoints method on the concrete PermissionGetter instance
+			permissionEndpoints, err := permissionGetter.GetUserPermissionEndpoints(primitiveUserId)
+			if err != nil {
+				ReturnErrorMessage(w, err.Error(), 400)
+				return
+			}
+
+			// Check if the user has permission to access the requested URL and method
+			if !hasPermission(permissionEndpoints, r.URL.Path, r.Method) {
+				ReturnErrorMessage(w, "You do not have permission to perform this action", 403)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func hasPermission(userPermissionEndpoints map[string]string, requestedUrl string, requesedMethod string) bool {
+	method, exists := userPermissionEndpoints[requestedUrl]
+	if exists {
+		return method == requesedMethod
+	}
+	return false
 }
