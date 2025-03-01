@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/AyanNandaGoswami/file-sharing-app-common-utilities/v1/models"
+	"github.com/AyanNandaGoswami/file-sharing-app-common-utilities/v1/outsource"
 	auth "github.com/AyanNandaGoswami/file-sharing-app-common-utilities/v1/utilities"
 )
 
@@ -15,11 +17,6 @@ const (
 	PrimitiveUserIdKey contextKey = "primitiveUserId"
 	TokenKey           contextKey = "token"
 )
-
-// Define the interface for getting user permissions.
-type PermissionGetter interface {
-	GetUserPermissionEndpoints(primitiveUserId string) (map[string]string, error)
-}
 
 // AuthValidateMiddleware is a middleware to validate Headers and JWT token
 func AuthValidateMiddleware(next http.Handler) http.Handler {
@@ -72,35 +69,23 @@ func AuthValidateMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// PermissionValidationMiddleware expects a concrete implementation of PermissionGetter
-func PermissionValidationMiddleware(permissionGetter PermissionGetter) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Get the primitiveUserId from the request context
-			primitiveUserId := r.Context().Value(PrimitiveUserIdKey).(string)
+// PermissionValidationMiddleware is to validate the request has authorized or not
+func PermissionValidationMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Get the primitiveUserId from the request context
+		primitiveUserId := r.Context().Value(PrimitiveUserIdKey).(string)
 
-			// Call the GetUserPermissionEndpoints method on the concrete PermissionGetter instance
-			permissionEndpoints, err := permissionGetter.GetUserPermissionEndpoints(primitiveUserId)
-			if err != nil {
-				ReturnErrorMessage(w, err.Error(), 400)
-				return
-			}
-
-			// Check if the user has permission to access the requested URL and method
-			if !hasPermission(permissionEndpoints, r.URL.Path, r.Method) {
-				ReturnErrorMessage(w, "You do not have permission to perform this action", 403)
-				return
-			}
-
-			next.ServeHTTP(w, r)
-		})
-	}
-}
-
-func hasPermission(userPermissionEndpoints map[string]string, requestedUrl string, requesedMethod string) bool {
-	method, exists := userPermissionEndpoints[requestedUrl]
-	if exists {
-		return method == requesedMethod
-	}
-	return false
+		requestBody := models.PermissionValidadtionRequest{
+			ValidateBy:      "primitiveUserId",
+			PrimitiveUserId: primitiveUserId,
+			RequestedUrl:    r.URL.Path,
+			RequestedMethod: r.Method,
+		}
+		err := outsource.HasPermission(&requestBody)
+		if err != nil {
+			ReturnErrorMessage(w, err.Error(), 403)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
