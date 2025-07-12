@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/AyanNandaGoswami/microservice-common-utilities/v1/models"
-	"github.com/AyanNandaGoswami/microservice-common-utilities/v1/outsource"
 	auth "github.com/AyanNandaGoswami/microservice-common-utilities/v1/utilities"
 )
 
@@ -65,27 +63,6 @@ func AuthValidateMiddleware(next http.Handler) http.Handler {
 		r = r.WithContext(ctx)
 
 		// Call the next handler
-		next.ServeHTTP(w, r)
-	})
-}
-
-// PermissionValidationMiddleware is to validate the request has authorized or not
-func PermissionValidationMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Get the primitiveUserId from the request context
-		primitiveUserId := r.Context().Value(PrimitiveUserIdKey).(string)
-
-		requestBody := models.PermissionValidadtionRequest{
-			ValidateBy:      "primitiveUserId",
-			PrimitiveUserId: primitiveUserId,
-			RequestedUrl:    r.URL.Path,
-			RequestedMethod: r.Method,
-		}
-		err := outsource.HasPermission(&requestBody)
-		if err != nil {
-			ReturnErrorMessage(w, err.Error(), 403)
-			return
-		}
 		next.ServeHTTP(w, r)
 	})
 }
