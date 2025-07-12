@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	auth "github.com/AyanNandaGoswami/file-sharing-app-common-utilities/v1/models"
+	auth "github.com/AyanNandaGoswami/microservice-common-utilities/v1/models"
 	"github.com/golang-jwt/jwt/v5"
 )
 

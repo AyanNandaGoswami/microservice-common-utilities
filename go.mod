@@ -1,4 +1,4 @@
-module github.com/AyanNandaGoswami/file-sharing-app-common-utilities
+module github.com/AyanNandaGoswami/microservice-common-utilities
 
 go 1.24.0
 

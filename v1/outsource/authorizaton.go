@@ -7,8 +7,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/AyanNandaGoswami/file-sharing-app-common-utilities/v1/constants"
-	"github.com/AyanNandaGoswami/file-sharing-app-common-utilities/v1/models"
+	"github.com/AyanNandaGoswami/microservice-common-utilities/v1/constants"
+	"github.com/AyanNandaGoswami/microservice-common-utilities/v1/models"
 )
 
 func HasPermission(requestBody *models.PermissionValidadtionRequest) error {

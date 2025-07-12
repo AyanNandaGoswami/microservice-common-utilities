@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/AyanNandaGoswami/file-sharing-app-common-utilities/v1/models"
-	"github.com/AyanNandaGoswami/file-sharing-app-common-utilities/v1/outsource"
-	auth "github.com/AyanNandaGoswami/file-sharing-app-common-utilities/v1/utilities"
+	"github.com/AyanNandaGoswami/microservice-common-utilities/v1/models"
+	"github.com/AyanNandaGoswami/microservice-common-utilities/v1/outsource"
+	auth "github.com/AyanNandaGoswami/microservice-common-utilities/v1/utilities"
 )
 
 type contextKey string

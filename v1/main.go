@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/AyanNandaGoswami/file-sharing-app-common-utilities/v1/models"
-	"github.com/AyanNandaGoswami/file-sharing-app-common-utilities/v1/outsource"
+	"github.com/AyanNandaGoswami/microservice-common-utilities/v1/models"
+	"github.com/AyanNandaGoswami/microservice-common-utilities/v1/outsource"
 )
 
 func main() {
