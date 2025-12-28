@@ -10,26 +10,23 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
-var nc *nats.Conn // global connection
-
 // InitializeNATS connects to NATS
-func InitializeNATS() {
-	var err error
-
+func InitializeNATS() *nats.Conn {
 	natsURL := os.Getenv("NATS_URI")
 	if natsURL == "" {
 		natsURL = nats.DefaultURL
 	}
 
-	nc, err = nats.Connect(natsURL)
+	nc, err := nats.Connect(natsURL)
 	if err != nil {
 		log.Fatalf("Error connecting to NATS: %v", err)
 	}
 	log.Println("Connected to NATS")
+	return nc
 }
 
 // CloseNATS closes the NATS connection gracefully
-func CloseNATS() {
+func CloseNATS(nc *nats.Conn) {
 	if nc != nil && !nc.IsClosed() {
 		nc.Drain() // Waits for pending messages before closing
 		log.Println("Draining NATS connection...")
@@ -39,7 +36,7 @@ func CloseNATS() {
 }
 
 // RequestAndParse sends a NATS request and parses the response into targetedStruct
-func RequestAndParse(subject string, payload interface{}, targetedStruct interface{}) error {
+func RequestAndParse(nc *nats.Conn, subject string, payload interface{}, targetedStruct interface{}) error {
 	// Marshal request payload
 	dataBytes, err := json.Marshal(payload)
 	if err != nil {
