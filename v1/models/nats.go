@@ -3,6 +3,7 @@ package models
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"reflect"
 
 	"github.com/nats-io/nats.go"
@@ -36,7 +37,7 @@ func ParseNatMsgToStruct(natMsg *nats.Msg, targetedStruct interface{}) error {
 		return fmt.Errorf("failed to unmarshal NATS message: %w", err)
 	}
 
-	fmt.Printf("Received from NATS: %v", natResp)
+	log.Printf("Received from NATS: %#v", natResp)
 
 	// check if status is failed
 	if natResp.Status == NATFailed {
