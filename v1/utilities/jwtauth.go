@@ -16,7 +16,7 @@ type Claims struct {
 }
 
 const (
-	expireAfter = 10
+	expireAfter = 60 // in minutes
 	jwtKey      = "my_secret_key"
 )
 
