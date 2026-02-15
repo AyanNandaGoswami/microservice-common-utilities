@@ -19,22 +19,31 @@ const (
 // AuthValidateMiddleware is a middleware to validate Headers and JWT token
 func AuthValidateMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var token string
+
 		// Check if the Authorization header is present
 		authorization := r.Header.Get("Authorization")
-		if authorization == "" {
-			ReturnErrorMessage(w, "Authorization header is missing", 401)
-			return
+		if authorization != "" {
+			// Split the Authorization header into "Bearer" and the token
+			splitedInfo := strings.Split(authorization, " ")
+			if len(splitedInfo) != 2 || splitedInfo[0] != "Bearer" {
+				ReturnErrorMessage(w, "Invalid Authorization header format", 401)
+				return
+			}
+
+			// Extract the token from the Authorization header
+			token = splitedInfo[1]
 		}
 
-		// Split the Authorization header into "Bearer" and the token
-		splitedInfo := strings.Split(authorization, " ")
-		if len(splitedInfo) != 2 || splitedInfo[0] != "Bearer" {
-			ReturnErrorMessage(w, "Invalid Authorization header format", 401)
-			return
+		// If token is empty, try retrieving token from query parameters
+		if token == "" {
+			token = r.URL.Query().Get("token")
 		}
 
-		// Extract the token from the Authorization header
-		token := splitedInfo[1]
+		if token == "" {
+			ReturnErrorMessage(w, "Authorization token is missing", 401)
+			return
+		}
 
 		// Validate token is blacklisted or not
 		// if models.IsTokenBlacklisted(token) {
