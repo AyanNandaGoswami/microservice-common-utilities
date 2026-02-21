@@ -35,6 +35,14 @@ func AuthValidateMiddleware(next http.Handler) http.Handler {
 			token = splitedInfo[1]
 		}
 
+		// If token is empty, try retrieving token from cookies
+		if token == "" {
+			cookie, _ := r.Cookie("authToken")
+			if cookie != nil {
+				token = cookie.Value
+			}
+		}
+
 		// If token is empty, try retrieving token from query parameters
 		if token == "" {
 			token = r.URL.Query().Get("token")
