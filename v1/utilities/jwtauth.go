@@ -1,6 +1,7 @@
 package utilities
 
 import (
+	"crypto/rsa"
 	"errors"
 	"log"
 	"time"
@@ -9,9 +10,16 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// Claims represents the JWT custom claims structure containing user ID and primitive user ID alongside standard registered claims.
 type Claims struct {
 	UserId          string `json:"user_id"`
 	PrimitiveUserId string `json:"primitive_user_id"`
+	Email           string `json:"email,omitempty"`
+	Firstname       string `json:"firstname,omitempty"`
+	Lastname        string `json:"lastname,omitempty"`
+	Country         string `json:"country,omitempty"`
+	ContactNumber   string `json:"contact_number,omitempty"`
+	IsSystemAdmin   bool   `json:"is_system_admin,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -20,7 +28,9 @@ const (
 	jwtKey      = "my_secret_key"
 )
 
-// Generate a new JWT token for given user ID
+// GenerateNewJWToken generates a signed JWT token string using legacy HS256 HMAC.
+//
+// Deprecated: HS256 is deprecated in favor of central OAuth 2.0 / OIDC RS256 asymmetric token issuance.
 func GenerateNewJWToken(userId string, primitiveId string) (string, error) {
 	// Set the JWT secret key
 	jwtkeyBytes := []byte(jwtKey)
@@ -62,6 +72,9 @@ func checkJWTKey(token *jwt.Token) (interface{}, error) {
 	return []byte(jwtKey), nil
 }
 
+// RetrieveDetilsFromJWT parses and validates a legacy HS256 JWT token string.
+//
+// Deprecated: Use VerifyRS256Token with the Central Auth Server's public RSA key instead.
 func RetrieveDetilsFromJWT(tokenString string) (*auth.DecodedJwtClaims, error) {
 	claims := &Claims{}
 
@@ -83,4 +96,35 @@ func RetrieveDetilsFromJWT(tokenString string) (*auth.DecodedJwtClaims, error) {
 
 	// Return user ID
 	return &decodedClaim, nil
+}
+
+// VerifyRS256Token validates an RS256 signed Central SSO access token using an RSA Public Key.
+func VerifyRS256Token(tokenString string, pubKey *rsa.PublicKey) (*auth.DecodedJwtClaims, error) {
+	claims := &Claims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
+			return nil, errors.New("unexpected signing method, expected RS256")
+		}
+		return pubKey, nil
+	})
+
+	if err != nil || !token.Valid {
+		return nil, errors.New("invalid or expired RS256 token")
+	}
+
+	userId := claims.UserId
+	if userId == "" {
+		userId = claims.Subject
+	}
+
+	return &auth.DecodedJwtClaims{
+		UserId:          userId,
+		PrimitiveUserId: claims.PrimitiveUserId,
+		Email:           claims.Email,
+		Firstname:       claims.Firstname,
+		Lastname:        claims.Lastname,
+		Country:         claims.Country,
+		ContactNumber:   claims.ContactNumber,
+		IsSystemAdmin:   claims.IsSystemAdmin,
+	}, nil
 }
