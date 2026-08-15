@@ -1,13 +1,15 @@
 package middlewares
 
 import (
-	"encoding/json"
 	"net/http"
 
-	"github.com/AyanNandaGoswami/microservice-common-utilities/v1/models"
+	"github.com/AyanNandaGoswami/microservice-common-utilities/v1/utilities"
 )
 
+// Deprecated: ReturnErrorMessage is deprecated. Use utilities.HandleError instead.
 func ReturnErrorMessage(w http.ResponseWriter, errMessage string, statusCode int) {
-	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(models.APIResponse{Message: errMessage, ExtraData: nil})
+	utilities.HandleError(w, &utilities.AppError{
+		Message: errMessage,
+		Code:    statusCode,
+	})
 }

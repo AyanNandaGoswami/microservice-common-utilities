@@ -5,18 +5,25 @@ import (
 	"net/http"
 	"strings"
 
-	auth "github.com/AyanNandaGoswami/microservice-common-utilities/v1/utilities"
+	"github.com/AyanNandaGoswami/microservice-common-utilities/v1/utilities"
 )
 
 type contextKey string
 
 const (
-	UserIdKey          contextKey = "userId"
+	// UserIdKey is the request context key used to store the user ID extracted from the JWT.
+	UserIdKey contextKey = "userId"
+
+	// PrimitiveUserIdKey is the request context key used to store the primitive user ID extracted from the JWT.
 	PrimitiveUserIdKey contextKey = "primitiveUserId"
-	TokenKey           contextKey = "token"
+
+	// TokenKey is the request context key used to store the raw JWT authorization token.
+	TokenKey contextKey = "token"
 )
 
-// AuthValidateMiddleware is a middleware to validate Headers and JWT token
+// AuthValidateMiddleware is an HTTP middleware that validates the incoming authorization token
+// from Authorization headers (Bearer token), cookies (authToken), or query parameters (token).
+// If valid, it attaches UserIdKey, PrimitiveUserIdKey, and TokenKey to the request context.
 func AuthValidateMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var token string
@@ -27,7 +34,7 @@ func AuthValidateMiddleware(next http.Handler) http.Handler {
 			// Split the Authorization header into "Bearer" and the token
 			splitedInfo := strings.Split(authorization, " ")
 			if len(splitedInfo) != 2 || splitedInfo[0] != "Bearer" {
-				ReturnErrorMessage(w, "Invalid Authorization header format", 401)
+				utilities.HandleError(w, utilities.Unauthorized("invalid Authorization header format"))
 				return
 			}
 
@@ -49,7 +56,7 @@ func AuthValidateMiddleware(next http.Handler) http.Handler {
 		}
 
 		if token == "" {
-			ReturnErrorMessage(w, "Authorization token is missing", 401)
+			utilities.HandleError(w, utilities.Unauthorized("Authorization token is missing"))
 			return
 		}
 
@@ -60,13 +67,13 @@ func AuthValidateMiddleware(next http.Handler) http.Handler {
 		// }
 
 		// Retrieve user ID from JWT token
-		info, err := auth.RetrieveDetilsFromJWT(token)
+		info, err := utilities.RetrieveDetilsFromJWT(token)
 		if err != nil {
 			// Split the error message by ":"
 			errorMessageParts := strings.Split(err.Error(), ":")
 
 			// Send the error message without ":"
-			ReturnErrorMessage(w, errorMessageParts[len(errorMessageParts)-1], 401)
+			utilities.HandleError(w, utilities.Unauthorized(errorMessageParts[len(errorMessageParts)-1]))
 			return
 		}
 

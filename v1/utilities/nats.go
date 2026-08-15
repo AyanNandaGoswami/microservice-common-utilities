@@ -13,7 +13,7 @@ import (
 
 var nc *nats.Conn
 
-// InitializeNATS connects to NATS
+// InitializeNATS establishes a connection to NATS server using the NATS_URI environment variable or default URL.
 func InitializeNATS() error {
 	natsURL := os.Getenv("NATS_URI")
 	if natsURL == "" {
@@ -29,7 +29,7 @@ func InitializeNATS() error {
 	return nil
 }
 
-// CloseNATS closes the NATS connection gracefully
+// CloseNATS drains pending messages and closes the active NATS connection gracefully.
 func CloseNATS() {
 	if nc != nil && !nc.IsClosed() {
 		nc.Drain() // Waits for pending messages before closing
@@ -39,12 +39,12 @@ func CloseNATS() {
 	}
 }
 
-// Get the connection
+// GetNATSConnention returns the underlying active NATS connection instance.
 func GetNATSConnention() *nats.Conn {
 	return nc
 }
 
-// RequestAndParse sends a NATS request and parses the response into targetedStruct
+// RequestAndParse marshals payload, sends a NATS request to subject, and parses the response data into targetedStruct.
 func RequestAndParse(subject string, payload interface{}, targetedStruct interface{}) error {
 	// Marshal request payload
 	dataBytes, err := json.Marshal(payload)
@@ -66,7 +66,7 @@ func RequestAndParse(subject string, payload interface{}, targetedStruct interfa
 	return nil
 }
 
-// Reply sends a NATSResponse as a reply to the given NATS message
+// Reply sends a structured models.NATSResponse back as a reply to the given NATS message.
 func Reply(response models.NATSResponse, msg *nats.Msg) {
 	// marshal response
 	data, err := json.Marshal(response)
@@ -83,7 +83,7 @@ func Reply(response models.NATSResponse, msg *nats.Msg) {
 	}
 }
 
-// PrepareNATSResponse prepares a NATSResponse struct with given parameters.
+// PrepareNATSResponse constructs a models.NATSResponse struct with the given message, payload data, and status.
 func PrepareNATSResponse(message string, data interface{}, status models.NatStatusType) models.NATSResponse {
 	return models.NATSResponse{
 		Message: message,
